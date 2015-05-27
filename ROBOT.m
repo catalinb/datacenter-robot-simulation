@@ -83,18 +83,52 @@ classdef ROBOT < Navigation
         % Options::
         %  'goal'            Superimpose the goal position if set
         %  'nooverlay'       Don't overlay the PRM graph
-
-            opt.nooverlay = false;
-            [opt,args] = tb_optparse(opt, varargin);
-
-            % display the occgrid
-            plot@Navigation(prm, args{:});
-
-            if ~opt.nooverlay
-                hold on
-                prm.graph.plot()%varargin{:});
-                hold off
+            clf
+        
+            unit_size = 100;
+            [height, width] = size(prm.occgrid);
+            
+            rposx = randi(height);
+            rposy = randi(width);
+            
+            while(prm.occgrid(rposx, rposy) == 1)
+                rposx = randi(height);
+                rposy = randi(width);
             end
+            
+            ground = imread('images/ground.jpg', 'jpg');
+            ground = imresize(ground, [height * unit_size, width * unit_size]);
+            
+            rack = imread('images/rack.jpg', 'jpg');
+            rack = imresize(rack, [unit_size, unit_size]);
+            rack = imrotate(rack, 180);
+            
+            robot = imread('images/robot_loaded.jpg', 'jpg');
+            robot = imresize(robot, [unit_size, unit_size]);
+            robot = imrotate(robot, 180);
+            
+            for i = 1:height
+                for j = 1:width
+                    if(prm.occgrid(i, j) == 1)
+                        % TODO: do not display unreachable servers
+                        
+                        
+                        ground(((i - 1) * unit_size + 1):(i * unit_size), ((j - 1) * unit_size + 1):(j * unit_size), :) = rack(1:unit_size, 1:unit_size, :);
+                    end
+                end
+            end
+            
+            rposx = floor((rposx - 1) * unit_size + 1);
+            rposy = floor((rposy - 1) * unit_size + 1);
+            
+            ground(rposx:(rposx + unit_size - 1), rposy:(rposy + unit_size - 1), :) = robot(1:unit_size, 1:unit_size, :);
+            
+            imshow(ground);
+            
+            set(gca, 'Ydir', 'normal');
+            xlabel('x');
+            ylabel('y');
+            hold on;
         end
         
         function n = next(robot, p)
