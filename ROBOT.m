@@ -32,10 +32,8 @@ classdef Robot < Navigation
         end
 
         function s = char(prm)
-            % invoke the superclass char() method
             s = char@Navigation(prm);
 
-            % add PRM specific stuff information
             s = char(s, sprintf('  graph size: %d', prm.npoints));
             s = char(s, sprintf('  dist thresh: %f', prm.distthresh));
             s = char(s, char(prm.graph) );
@@ -47,5 +45,5 @@ classdef Robot < Navigation
         
         function plan(prm)
         end
-    end % method
-end % classdef
+    end
+end
