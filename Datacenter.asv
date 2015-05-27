@@ -34,16 +34,16 @@ classdef Datacenter
         end
         
         function moveRobot(datacenter, destX, destY)
-            while (abs(datacenter.robot.posX-destX) > 0.001 || abs(datacenter.robot.posY-destY) > 0.001)
+            while (abs(datacenter.robot.posX-destX) > 0.1 && abs(datacenter.robot.posY-destY) > 0.2)
                 disp(datacenter.robot.posX);
                 if (datacenter.robot.posX > destX)
-                    datacenter.robot.posX = datacenter.robot.posX - 0.5;
+                    datacenter.robot.posX = datacenter.robot.posX - 0.2;
                 else if (datacenter.robot.posX < destX)
-                        datacenter.robot.posX = datacenter.robot.posX + 0.5;
+                        datacenter.robot.posX = datacenter.robot.posX + 0.2;
                     else if (datacenter.robot.posY > destY)
-                            datacenter.robot.posY = datacenter.robot.posY - 0.5;
+                            datacenter.robot.posY = datacenter.robot.posY - 0.2;
                         else if (datacenter.robot.posY < destY)
-                                datacenter.robot.posY = datacenter.robot.posY + 0.5;
+                                datacenter.robot.posY = datacenter.robot.posY + 0.2;
                             end
                         end
                     end
@@ -64,7 +64,7 @@ classdef Datacenter
             queueY(st) = floor(datacenter.robot.posY);
             
             while(true)
-                if (queueX(st) == destX && queueY(st) == destY || st > fn)
+                if (queueX(st) == destX && queueY(st) == destY)
                     break;
                 end
                 
@@ -108,36 +108,9 @@ classdef Datacenter
                     break;
                 end
                 
-                if (movesX(st)+1 < datacenter.mapHeight+1 && aux(movesX(st)+1, movesY(st)) == aux(movesX(st), movesY(st)) - 1)
-                    movesX(st+1) = movesX(st)+1;
-                    movesY(st+1) = movesY(st);
-                    st=st+1;
-                else
-                    if (movesX(st)-1 > 0 && aux(movesX(st)-1, movesY(st)) == aux(movesX(st), movesY(st)) - 1)
-                        movesX(st+1) = movesX(st)-1;
-                        movesY(st+1) = movesY(st);
-                        st=st+1;
-                    else
-                        if (movesY(st)+1 < datacenter.mapWidth+1 && aux(movesX(st), movesY(st)+1) == aux(movesX(st), movesY(st)) - 1)
-                            movesX(st+1) = movesX(st);
-                            movesY(st+1) = movesY(st)+1;
-                            st=st+1;
-                        else
-                            if (movesY(st)-1 > 0 && aux(movesX(st), movesY(st)-1) == aux(movesX(st), movesY(st)) - 1)
-                                movesX(st+1) = movesX(st);
-                                movesY(st+1) = movesY(st)-1;
-                                st=st+1;
-                            end
-                        end
-                    end
-                end
+                
             end
-                        
-            while(st > 0)
-                disp(st)
-                datacenter.moveRobot(movesX(st), movesY(st))
-                st = st - 1;
-            end
+            
             
         end
         
