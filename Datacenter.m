@@ -119,6 +119,8 @@ classdef Datacenter
             oldRoutes = zeros(size(droute, 1), size(droute, 1));
             oldRoutes(1, 1) = 1;
             
+            oldDistances = zeros(size(droute, 1), 1);
+            
             routes = zeros(size(droute, 1), size(droute, 1));
             routes(1, 1) = 1;
             
@@ -128,13 +130,14 @@ classdef Datacenter
                 
                 new = zeros(size(droute, 1), 1);
                 newRoutes = zeros(size(droute, 1), size(droute, 1));
+                newDistances = zeros(size(droute, 1), 1);
                 
                 for j = i + 1 : size(droute, 1)
                     posX = droute(j, 1);
                     posY = droute(j, 2);
                     
                     % Distance from current position to possible next position.
-                    dcp = sqrt((curX - posX) ^ 2 + (curY - posY) ^ 2);
+                    dcp =  Datacenter.euclideanDistance([curX curY], [posX posY]);
                     
                     % Determine the possible area of collisions.
                     minX = min(curX, posX);
@@ -160,10 +163,10 @@ classdef Datacenter
                                 verY = vertices(m, 2);
 
                                 % Distance from current position to vertice.
-                                dcv = sqrt((curX - verX) ^ 2 + (curY - verY) ^ 2);
+                                dcv = Datacenter.euclideanDistance([curX curY], [verX verY]);
                                 % Distance from possible next position to vertice.
-                                dpv = sqrt((posX - verX) ^ 2 + (posY - verY) ^ 2);
-
+                                dpv = Datacenter.euclideanDistance([posX posY], [verX verY]);
+                                
                                 % Semiperimeter and area.
                                 p = (dcp + dcv + dpv) / 2;
                                 a = sqrt(p * (p - dcp) * (p - dcv) * (p - dpv));
@@ -195,15 +198,19 @@ classdef Datacenter
                         newRoutes(j, :) = oldRoutes(i, :);
                         newRoutes(j, new(j)) = j;
                         
-                        if old(j) ~= 0 && old(j) < new(j)
+                        newDistances(j) = oldDistances(i) + Datacenter.euclideanDistance(droute(newRoutes(j, old(i)), :), droute(newRoutes(j, new(j)), :));
+                        
+                        if old(j) ~= 0 && oldDistances(j) < newDistances(j)
                             new(j) = old(j);
                             newRoutes(j, :) = oldRoutes(j, :);
+                            newDistances(j) = oldDistances(j);
                         end
                     end
                 end
                
                 old = new;
                 oldRoutes = newRoutes;
+                oldDistances = newDistances;
             end
             
             routeIndices = nonzeros(oldRoutes(size(oldRoutes, 1), :));
@@ -226,15 +233,16 @@ classdef Datacenter
             dx = destX - datacenter.robot.posX;
             dy = destY - datacenter.robot.posY;
             
-            d = sqrt(dx ^ 2 + dy ^ 2);
+            d =  sqrt(dx ^ 2 + dy ^ 2);
             
-            noSteps = floor(datacenter.mapUnitSize);
+            noSteps = floor(datacenter.mapUnitSize / 5 * d);
             stepSize = d / noSteps;
             
             sx = (stepSize * dx) / d;
             sy = (stepSize * dy) / d;
             
             for i = 1 : noSteps
+                disp([i noSteps dx dy stepSize sx sy]);
                 if i == noSteps
                     datacenter.robot.posX = destX;
                     datacenter.robot.posY = destY;
@@ -330,6 +338,16 @@ classdef Datacenter
             end
             
             position = [rposx, rposy];
+        end
+        
+        function d = euclideanDistance(p1, p2)
+            x1 = p1(1);
+            y1 = p1(2);
+            
+            x2 = p2(1);
+            y2 = p2(2);
+            
+            d = sqrt((x1 - x2) ^ 2 + (y1 - y2) ^ 2);
         end
     end
 end
