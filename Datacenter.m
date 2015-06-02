@@ -229,6 +229,7 @@ classdef Datacenter
             end
         end
         
+        % TODO: colision behavior.
         function moveRobot(datacenter, destX, destY)
             dx = destX - datacenter.robot.posX;
             dy = destY - datacenter.robot.posY;
