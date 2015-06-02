@@ -106,8 +106,6 @@ classdef Datacenter
                 prevX = queue(i, 4);
                 prevY = queue(i, 5);
             end
-            
-            route = route(2 : size(route, 1), :);
         end
         
         function route = generateRobotContinuousRoute(datacenter, destX, destY)
@@ -115,85 +113,106 @@ classdef Datacenter
             
             droute = datacenter.generateRobotDiscreteRoute(destX, destY);
             
-            curX = datacenter.robot.posX;
-            curY = datacenter.robot.posY;
+            old = zeros(size(droute, 1), 1);
+            old(1) = 1;
             
-            for l = 2 : size(droute, 1)
-                prevX = droute(l - 1, 1);
-                prevY = droute(l - 1, 2);
+            oldRoutes = zeros(size(droute, 1), size(droute, 1));
+            oldRoutes(1, 1) = 1;
+            
+            routes = zeros(size(droute, 1), size(droute, 1));
+            routes(1, 1) = 1;
+            
+            for i = 1 : size(droute, 1) - 1
+                curX = droute(i, 1);
+                curY = droute(i, 2);
                 
-                posX = droute(l, 1);
-                posY = droute(l, 2);
+                new = zeros(size(droute, 1), 1);
+                newRoutes = zeros(size(droute, 1), size(droute, 1));
                 
-                % Distance from current position to possible next position.
-                dcp = sqrt((curX - posX) ^ 2 + (curY - posY) ^ 2);
-                
-                % Determine the possible area of collisions.
-                minX = min(curX, posX);
-                minY = min(curY, posY);
-                
-                maxX = max(curX, posX);
-                maxY = max(curY, posY);
-                
-                % Determine if there are any collisions.
-                collides = false;
-                
-                for i = minX : maxX
-                    for j = minY : maxY
-                        if datacenter.map(i, j) ~= 1
-                            continue;
-                        end
-                        
-                        % Vertices of the server. Used to determine
-                        % collision.
-                        vertices = [[i j]; [i + 1 j]; [i j + 1]; [i + 1 j + 1]];
-                        for k = 1 : size(vertices, 1)
-                            verX = vertices(k, 1);
-                            verY = vertices(k, 2);
-                            
-                            % Distance from current position to vertice.
-                            dcv = sqrt((curX - verX) ^ 2 + (curY - verY) ^ 2);
-                            % Distance from possible next position to vertice.
-                            dpv = sqrt((posX - verX) ^ 2 + (posY - verY) ^ 2);
-                            
-                            % Semiperimeter and area.
-                            p = (dcp + dcv + dpv) / 2;
-                            a = sqrt(p * (p - dcp) * (p - dcv) * (p - dpv));
-                            
-                            % Distance from vertice to direct route.
-                            d = (2 * a) / dcp;
-                            
-                            % The robot colides if the distance is lower
-                            % than its radius.
-                            if d < datacenter.robot.radius
-                                collides = true;
+                for j = i + 1 : size(droute, 1)
+                    posX = droute(j, 1);
+                    posY = droute(j, 2);
+                    
+                    % Distance from current position to possible next position.
+                    dcp = sqrt((curX - posX) ^ 2 + (curY - posY) ^ 2);
+                    
+                    % Determine the possible area of collisions.
+                    minX = min(curX, posX);
+                    minY = min(curY, posY);
+
+                    maxX = max(curX, posX);
+                    maxY = max(curY, posY);
+                    
+                    % Determine if there are any collisions.
+                    collides = false;
+
+                    for k = minX : maxX
+                        for l = minY : maxY
+                            if datacenter.map(k, l) ~= 1
+                                continue;
+                            end
+
+                            % Vertices of the server. Used to determine
+                            % collision.
+                            vertices = [[k l]; [k + 1 l]; [k l + 1]; [k + 1 l + 1]];
+                            for m = 1 : size(vertices, 1)
+                                verX = vertices(m, 1);
+                                verY = vertices(m, 2);
+
+                                % Distance from current position to vertice.
+                                dcv = sqrt((curX - verX) ^ 2 + (curY - verY) ^ 2);
+                                % Distance from possible next position to vertice.
+                                dpv = sqrt((posX - verX) ^ 2 + (posY - verY) ^ 2);
+
+                                % Semiperimeter and area.
+                                p = (dcp + dcv + dpv) / 2;
+                                a = sqrt(p * (p - dcp) * (p - dcv) * (p - dpv));
+
+                                % Distance from vertice to direct route.
+                                d = (2 * a) / dcp;
+
+                                % The robot colides if the distance is lower
+                                % than its radius.
+                                if d < datacenter.robot.radius
+                                    collides = true;
+                                    break;
+                                end
+                            end
+
+                            if collides == true
                                 break;
                             end
                         end
-                        
+
                         if collides == true
                             break;
                         end
                     end
                     
-                    if collides == true
-                        break;
+                    if collides == false
+                        new(j) = old(i) + 1;
+                        
+                        newRoutes(j, :) = oldRoutes(i, :);
+                        newRoutes(j, new(j)) = j;
+                        
+                        if old(j) ~= 0 && old(j) < new(j)
+                            new(j) = old(j);
+                            newRoutes(j, :) = oldRoutes(j, :);
+                        end
                     end
                 end
-                
-                if collides == true
-                    route = [route; [prevX prevY]];
-                    
-                    curX = prevX;
-                    curY = prevY;
-                end
+               
+                old = new;
+                oldRoutes = newRoutes;
             end
             
-            route = [route; [destX destY]];
+            routeIndices = nonzeros(oldRoutes(size(oldRoutes, 1), :));
+            route = droute(routeIndices, :);
         end
         
         function routeRobot(datacenter, destX, destY)
             route = datacenter.generateRobotContinuousRoute(destX, destY);
+            route = route(2 : length(route), :);
             
             for i = 1 : size(route, 1)
                 nextX = route(i, 1);
