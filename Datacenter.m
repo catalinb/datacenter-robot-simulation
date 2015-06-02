@@ -33,116 +33,204 @@ classdef Datacenter
             datacenter.robot = Robot(opt.robotRadius, robotPosition(2), robotPosition(1));
         end
         
-        function moveRobot(datacenter, destX, destY)
-            while (abs(datacenter.robot.posX-destX) > 0.001 || abs(datacenter.robot.posY-destY) > 0.001)
-                disp(datacenter.robot.posX);
-                if (datacenter.robot.posX > destX)
-                    datacenter.robot.posX = datacenter.robot.posX - 0.5;
-                else if (datacenter.robot.posX < destX)
-                        datacenter.robot.posX = datacenter.robot.posX + 0.5;
-                    else if (datacenter.robot.posY > destY)
-                            datacenter.robot.posY = datacenter.robot.posY - 0.5;
-                        else if (datacenter.robot.posY < destY)
-                                datacenter.robot.posY = datacenter.robot.posY + 0.5;
+        function route = generateRobotDiscreteRoute(datacenter, destX, destY)
+            route = [];
+            
+            map = datacenter.map .* -1;
+            
+            initX = floor(datacenter.robot.posX);
+            initY = floor(datacenter.robot.posY);
+            
+            assert(map(initX, initY) == 0);
+            
+            if initX == destX && initY == destY
+                return;
+            end
+            
+            % [curX curY dist prevX prevY]
+            queue = [[initX initY 0 -1 -1];];
+
+            i = 1;
+            
+            while i <= size(queue, 1)
+                posX = queue(i, 1);
+                posY = queue(i, 2);
+                posD = queue(i, 3);
+            
+                if posX == destX && posY == destY
+                    % truncate the queue.
+                    queue = queue(1 : i, :);
+                    
+                    break;
+                end
+                
+                if posX > 1 && map(posX - 1, posY) == 0 && sum([posX - 1 posY] == [initX initY]) < 2
+                    queue = [queue; [posX - 1 posY posD + 1 posX posY]];
+                    map(posX - 1, posY) = posD + 1;
+                end
+                
+                if posX < datacenter.mapHeight && map(posX + 1, posY) == 0  && sum([posX + 1 posY] == [initX initY]) < 2
+                    queue = [queue; [posX + 1 posY posD + 1 posX posY]];
+                    map(posX + 1, posY) = posD + 1;
+                end
+                
+                if posY > 1 && map(posX, posY - 1) == 0 && sum([posX posY - 1] == [initX initY]) < 2
+                    queue = [queue; [posX posY - 1 posD + 1 posX posY]];
+                    map(posX, posY - 1) = posD + 1;
+                end
+                
+                if posY < datacenter.mapWidth && map(posX, posY + 1) == 0 && sum([posX posY + 1] == [initX initY]) < 2 
+                    queue = [queue; [posX posY + 1 posD + 1 posX posY]];
+                    map(posX, posY + 1) = posD + 1;
+                end
+                
+                i = i + 1;
+            end
+            
+            prevX = queue(size(queue, 1), 1);
+            prevY = queue(size(queue, 1), 2);
+            
+            % Destination has been reached.
+            assert(prevX == destX && prevY == destY);
+            
+            for i = size(queue, 1) : -1 : 1
+                posX = queue(i, 1);
+                posY = queue(i, 2);
+                
+                if posX ~= prevX || posY ~= prevY
+                    continue;
+                end
+                
+                route = [[posX posY]; route];
+                
+                prevX = queue(i, 4);
+                prevY = queue(i, 5);
+            end
+            
+            route = route(2 : size(route, 1), :);
+        end
+        
+        function route = generateRobotContinuousRoute(datacenter, destX, destY)
+            route = [];
+            
+            droute = datacenter.generateRobotDiscreteRoute(destX, destY);
+            
+            curX = datacenter.robot.posX;
+            curY = datacenter.robot.posY;
+            
+            for l = 2 : size(droute, 1)
+                prevX = droute(l - 1, 1);
+                prevY = droute(l - 1, 2);
+                
+                posX = droute(l, 1);
+                posY = droute(l, 2);
+                
+                % Distance from current position to possible next position.
+                dcp = sqrt((curX - posX) ^ 2 + (curY - posY) ^ 2);
+                
+                % Determine the possible area of collisions.
+                minX = min(curX, posX);
+                minY = min(curY, posY);
+                
+                maxX = max(curX, posX);
+                maxY = max(curY, posY);
+                
+                % Determine if there are any collisions.
+                collides = false;
+                
+                for i = minX : maxX
+                    for j = minY : maxY
+                        if datacenter.map(i, j) ~= 1
+                            continue;
+                        end
+                        
+                        % Vertices of the server. Used to determine
+                        % collision.
+                        vertices = [[i j]; [i + 1 j]; [i j + 1]; [i + 1 j + 1]];
+                        for k = 1 : size(vertices, 1)
+                            verX = vertices(k, 1);
+                            verY = vertices(k, 2);
+                            
+                            % Distance from current position to vertice.
+                            dcv = sqrt((curX - verX) ^ 2 + (curY - verY) ^ 2);
+                            % Distance from possible next position to vertice.
+                            dpv = sqrt((posX - verX) ^ 2 + (posY - verY) ^ 2);
+                            
+                            % Semiperimeter and area.
+                            p = (dcp + dcv + dpv) / 2;
+                            a = sqrt(p * (p - dcp) * (p - dcv) * (p - dpv));
+                            
+                            % Distance from vertice to direct route.
+                            d = (2 * a) / dcp;
+                            
+                            % The robot colides if the distance is lower
+                            % than its radius.
+                            if d < datacenter.robot.radius
+                                collides = true;
+                                break;
                             end
                         end
+                        
+                        if collides == true
+                            break;
+                        end
+                    end
+                    
+                    if collides == true
+                        break;
                     end
                 end
-                datacenter.plot()
-                pause(0.001)
+                
+                if collides == true
+                    route = [route; [prevX prevY]];
+                    
+                    curX = prevX;
+                    curY = prevY;
+                end
+            end
+            
+            route = [route; [destX destY]];
+        end
+        
+        function routeRobot(datacenter, destX, destY)
+            route = datacenter.generateRobotContinuousRoute(destX, destY);
+            
+            for i = 1 : size(route, 1)
+                nextX = route(i, 1);
+                nextY = route(i, 2);
+                
+                datacenter.moveRobot(nextX, nextY);
             end
         end
-
-        function moveRoute(datacenter, destX, destY)
-            aux(1:datacenter.mapHeight, 1:datacenter.mapWidth) = 0;
-
-            aux(floor(datacenter.robot.posX), floor(datacenter.robot.posY)) = 1;
+        
+        function moveRobot(datacenter, destX, destY)
+            dx = destX - datacenter.robot.posX;
+            dy = destY - datacenter.robot.posY;
             
-            st = 1;
-            fn = 1;
-            queueX(st) = floor(datacenter.robot.posX);
-            queueY(st) = floor(datacenter.robot.posY);
+            d = sqrt(dx ^ 2 + dy ^ 2);
             
-            while(true)
-                if (queueX(st) == destX && queueY(st) == destY || st > fn)
-                    break;
-                end
-                
-                if (queueX(st)+1 < datacenter.mapHeight+1 && datacenter.map(queueX(st)+1, queueY(st)) == 0 && aux(queueX(st)+1, queueY(st)) == 0)
-                    fn=fn+1;
-                    aux(queueX(st)+1, queueY(st)) = aux(queueX(st), queueY(st))+1;
-                    queueX(fn)=queueX(st)+1;
-                    queueY(fn)=queueY(st);
-                end
-                
-                if (queueX(st)-1 > 0 && datacenter.map(queueX(st)-1, queueY(st)) == 0 && aux(queueX(st)-1, queueY(st)) == 0)
-                    fn=fn+1;
-                    aux(queueX(st)-1, queueY(st)) = aux(queueX(st), queueY(st))+1;
-                    queueX(fn)=queueX(st)-1;
-                    queueY(fn)=queueY(st);
-                end
-                
-                if (queueY(st)+1 < datacenter.mapWidth+1 && datacenter.map(queueX(st), queueY(st)+1) == 0 && aux(queueX(st), queueY(st)+1) == 0)
-                    fn=fn+1;
-                    aux(queueX(st), queueY(st)+1) = aux(queueX(st), queueY(st))+1;
-                    queueX(fn)=queueX(st);
-                    queueY(fn)=queueY(st)+1;
-                end
-
-                if (queueY(st)-1 > 0 && datacenter.map(queueX(st), queueY(st)-1) == 0 && aux(queueX(st), queueY(st)-1) == 0)
-                    fn=fn+1;
-                    aux(queueX(st), queueY(st)-1) = aux(queueX(st), queueY(st))+1;
-                    queueX(fn)=queueX(st);
-                    queueY(fn)=queueY(st)-1;
-                end
-                
-                st = st+1;
-            end
+            noSteps = floor(datacenter.mapUnitSize);
+            stepSize = d / noSteps;
             
-            st = 1;
-            movesX(st) = destX;
-            movesY(st) = destY;
+            sx = (stepSize * dx) / d;
+            sy = (stepSize * dy) / d;
             
-            while(true)
-                if (movesX(st) == floor(datacenter.robot.posX) && movesY(st) == floor(datacenter.robot.posY))
-                    break;
-                end
-                
-                if (movesX(st)+1 < datacenter.mapHeight+1 && aux(movesX(st)+1, movesY(st)) == aux(movesX(st), movesY(st)) - 1)
-                    movesX(st+1) = movesX(st)+1;
-                    movesY(st+1) = movesY(st);
-                    st=st+1;
+            for i = 1 : noSteps
+                if i == noSteps
+                    datacenter.robot.posX = destX;
+                    datacenter.robot.posY = destY;
                 else
-                    if (movesX(st)-1 > 0 && aux(movesX(st)-1, movesY(st)) == aux(movesX(st), movesY(st)) - 1)
-                        movesX(st+1) = movesX(st)-1;
-                        movesY(st+1) = movesY(st);
-                        st=st+1;
-                    else
-                        if (movesY(st)+1 < datacenter.mapWidth+1 && aux(movesX(st), movesY(st)+1) == aux(movesX(st), movesY(st)) - 1)
-                            movesX(st+1) = movesX(st);
-                            movesY(st+1) = movesY(st)+1;
-                            st=st+1;
-                        else
-                            if (movesY(st)-1 > 0 && aux(movesX(st), movesY(st)-1) == aux(movesX(st), movesY(st)) - 1)
-                                movesX(st+1) = movesX(st);
-                                movesY(st+1) = movesY(st)-1;
-                                st=st+1;
-                            end
-                        end
-                    end
+                    datacenter.robot.posX = datacenter.robot.posX + sx;
+                    datacenter.robot.posY = datacenter.robot.posY + sy;
                 end
+                
+                datacenter.plot();
+                pause(0.001);
             end
-                        
-            while(st > 0)
-                disp(st)
-                datacenter.moveRobot(movesX(st), movesY(st))
-                st = st - 1;
-            end
-            
         end
         
         function plot(datacenter, varargin)
-            clf
+            clf;
             
             groundHeight = datacenter.mapHeight * datacenter.mapUnitSize;
             groundWidth = datacenter.mapWidth * datacenter.mapUnitSize;
