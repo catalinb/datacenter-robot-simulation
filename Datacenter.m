@@ -6,6 +6,8 @@ classdef Datacenter
         mapRackWidth;
         mapRowWidth;
         mapUnitSize;
+        landmarks;
+        landmarkViewRange;
         robot;
         robotRadius;
     end
@@ -18,6 +20,7 @@ classdef Datacenter
             opt.mapRowWidth = 2;
             opt.mapUnitSize = 100;
             opt.robotRadius = 1;
+            opt.landmarkViewRange = 1.5;
             
             [opt, args] = tb_optparse(opt, varargin);
             
@@ -26,8 +29,10 @@ classdef Datacenter
             datacenter.mapRackWidth = opt.mapRackWidth;
             datacenter.mapRowWidth = opt.mapRowWidth;
             datacenter.mapUnitSize = opt.mapUnitSize;
+            datacenter.landmarkViewRange = opt.landmarkViewRange;
             
             datacenter.map = Datacenter.generateMap(opt.mapWidth, opt.mapHeight, opt.mapRowWidth, opt.mapRackWidth);
+            datacenter.landmarks = Datacenter.generateLandmarks(datacenter.map);
             
             robotPosition = Datacenter.generateRobotPosition(datacenter.map, opt.robotRadius);
             datacenter.robot = Robot(opt.robotRadius, robotPosition(2), robotPosition(1));
@@ -243,7 +248,6 @@ classdef Datacenter
             sy = (stepSize * dy) / d;
             
             for i = 1 : noSteps
-                disp([i noSteps dx dy stepSize sx sy]);
                 if i == noSteps
                     datacenter.robot.posX = destX;
                     datacenter.robot.posY = destY;
@@ -258,13 +262,18 @@ classdef Datacenter
         end
         
         function plot(datacenter, varargin)
-            clf;
+            % Do not close the current window.
+            clf('reset');
             
-            groundHeight = datacenter.mapHeight * datacenter.mapUnitSize;
-            groundWidth = datacenter.mapWidth * datacenter.mapUnitSize;
+            % Don't want the image size warning showing up.
+            warning('off', 'Images:initSize:adjustingMag');
             
-            ground = imread('images/ground.jpg', 'jpg');
-            ground = imresize(ground, [groundHeight, groundWidth]);
+            mapImageHeight = datacenter.mapHeight * datacenter.mapUnitSize;
+            mapImageWidth = datacenter.mapWidth * datacenter.mapUnitSize;
+            
+            % Read, resize and rotate used images.
+            mapImage = imread('images/ground.jpg', 'jpg');
+            mapImage = imresize(mapImage, [mapImageHeight, mapImageWidth]);
             
             rackSize = datacenter.mapUnitSize;
             
@@ -277,21 +286,34 @@ classdef Datacenter
             robot = imread('images/robot.jpg', 'jpg');
             robot = imresize(robot, [robotSize, robotSize]);
             
+            % Draw racks.
             for i = 1 : datacenter.mapHeight
                 for j = 1 : datacenter.mapWidth
                     if(datacenter.map(i, j) == 1)
-                        ground(((i - 1) * datacenter.mapUnitSize + 1) : (i * datacenter.mapUnitSize), ((j - 1) * datacenter.mapUnitSize+ 1) : (j * datacenter.mapUnitSize), :) = rack(:, :, :);
+                        mapImage(((i - 1) * datacenter.mapUnitSize + 1) : (i * datacenter.mapUnitSize), ((j - 1) * datacenter.mapUnitSize + 1) : (j * datacenter.mapUnitSize), :) = rack(:, :, :);
                     end
                 end
             end
             
+            % Draw landmarks view ranges.
+            shapeInserter = vision.ShapeInserter('Shape', 'Circles', 'BorderColor', 'Custom', 'CustomBorderColor', uint8([255 255 0]));
+            circles = [];
+            
+            for i = 1 : size(datacenter.landmarks, 1)
+                circles = [circles; [fliplr(datacenter.landmarks(i, :)) datacenter.landmarkViewRange] .* datacenter.mapUnitSize];
+            end
+            
+            mapImage = step(shapeInserter, mapImage, uint32(circles));
+            
+            % Draw robot.
             rposx = max(floor((datacenter.robot.posX - datacenter.robot.radius) * datacenter.mapUnitSize), 1);
             rposy = max(floor((datacenter.robot.posY - datacenter.robot.radius) * datacenter.mapUnitSize), 1);
             
-            ground(rposx : (rposx + robotSize - 1), rposy : (rposy + robotSize - 1), :) = robot(:, :, :);
+            mapImage(rposx : (rposx + robotSize - 1), rposy : (rposy + robotSize - 1), :) = robot(:, :, :);
             
-            imshow(ground);
+            imshow(mapImage, 'Border', 'tight', 'InitialMagnification', 100);
             
+            % Set axis.
             set(gca, 'Ydir', 'normal');
             xlabel('x');
             ylabel('y');
@@ -324,6 +346,29 @@ classdef Datacenter
                     end
                     
                     map(freeThroughRackRow : min(freeThroughRackRow + freeRowWidth, height), i : min(i + occupiedRowWidth - 1, width)) = 0;
+                end
+            end
+        end
+        
+        function landmarks = generateLandmarks(map)
+            landmarks = [];
+            [height, width] = size(map);
+            
+            for i = 1 : height
+                for j = 1 : width
+                    if map(i, j) ~= 1
+                        continue;
+                    end
+                    
+                    if i ~= 1 && i ~= height && and(map(i - 1, j), map(i + 1, j))
+                        continue;
+                    end
+                    
+                    if j ~= 1 && j ~= width && and(map(i, j - 1), map(i, j + 1))
+                        continue;
+                    end
+                    
+                    landmarks = [landmarks; [i j] - 0.5];
                 end
             end
         end
