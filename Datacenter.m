@@ -10,6 +10,8 @@ classdef Datacenter
         landmarkViewRange;
         robot;
         robotRadius;
+        % caching mapImage background (racks + tiles + landmark radius)
+        mapImage;
     end
     
     methods
@@ -36,6 +38,7 @@ classdef Datacenter
             
             robotPosition = Datacenter.generateRobotPosition(datacenter.map, opt.robotRadius);
             datacenter.robot = Robot(opt.robotRadius, robotPosition(2), robotPosition(1));
+            datacenter.mapImage = datacenter.blitBackground()
         end
         
         function route = generateRobotDiscreteRoute(datacenter, destX, destY)
@@ -247,6 +250,7 @@ classdef Datacenter
             sx = (stepSize * dx) / d;
             sy = (stepSize * dy) / d;
             
+            buf = datacenter.plot(NaN);
             for i = 1 : noSteps
                 if i == noSteps
                     datacenter.robot.posX = destX;
@@ -256,36 +260,28 @@ classdef Datacenter
                     datacenter.robot.posY = datacenter.robot.posY + sy;
                 end
                 
-                datacenter.plot();
+                datacenter.plot(buf);
                 pause(0.001);
             end
         end
-        
-        function plot(datacenter, varargin)
-            % Do not close the current window.
-            clf('reset');
-            
-            % Don't want the image size warning showing up.
+
+        function mapImage = blitBackground(datacenter)
+             % Don't want the image size warning showing up.
             warning('off', 'Images:initSize:adjustingMag');
-            
+
             mapImageHeight = datacenter.mapHeight * datacenter.mapUnitSize;
             mapImageWidth = datacenter.mapWidth * datacenter.mapUnitSize;
-            
+
             % Read, resize and rotate used images.
             mapImage = imread('images/ground.jpg', 'jpg');
             mapImage = imresize(mapImage, [mapImageHeight, mapImageWidth]);
-            
+
             rackSize = datacenter.mapUnitSize;
-            
+
             rack = imread('images/rack.jpg', 'jpg');
             rack = imresize(rack, [rackSize, rackSize]);
             rack = imrotate(rack, 180);
-            
-            robotSize = ceil(datacenter.mapUnitSize * datacenter.robot.radius);
-            
-            robot = imread('images/robot.jpg', 'jpg');
-            robot = imresize(robot, [robotSize, robotSize]);
-            
+
             % Draw racks.
             for i = 1 : datacenter.mapHeight
                 for j = 1 : datacenter.mapWidth
@@ -294,33 +290,48 @@ classdef Datacenter
                     end
                 end
             end
-            
+
             % Draw landmarks view ranges.
             shapeInserter = vision.ShapeInserter('Shape', 'Circles', 'BorderColor', 'Custom', 'CustomBorderColor', uint8([255 255 0]));
             circles = [];
-            
+
             for i = 1 : size(datacenter.landmarks, 1)
                 circles = [circles; [fliplr(datacenter.landmarks(i, :)) datacenter.landmarkViewRange] .* datacenter.mapUnitSize];
             end
-            
+
             mapImage = step(shapeInserter, mapImage, uint32(circles));
-            
+        end
+
+        function buf = plot(datacenter, buffer)
+            % mapImage = datacenter.blitBackground();
+            mapImage = datacenter.mapImage();
+
+            robotSize = ceil(datacenter.mapUnitSize * datacenter.robot.radius);
+            robot = imread('images/robot.jpg', 'jpg');
+            robot = imresize(robot, [robotSize, robotSize]);
+
             % Draw robot.
             rposx = max(floor((datacenter.robot.posX - datacenter.robot.radius) * datacenter.mapUnitSize), 1);
             rposy = max(floor((datacenter.robot.posY - datacenter.robot.radius) * datacenter.mapUnitSize), 1);
-            
+
             mapImage(rposx : (rposx + robotSize - 1), rposy : (rposy + robotSize - 1), :) = robot(:, :, :);
-            
-            imshow(mapImage, 'Border', 'tight', 'InitialMagnification', 100);
-            
-            % Set axis.
-            set(gca, 'Ydir', 'normal');
-            xlabel('x');
-            ylabel('y');
-            hold on;
+
+            if (~isa(buffer, 'matlab.graphics.primitive.Image'))
+                % Set axis.
+                set(gca, 'Ydir', 'normal');
+                xlabel('x');
+                ylabel('y');
+                hold on;
+
+                % Do not close the current window.
+                clf('reset');
+                buf = imshow(mapImage, 'Border', 'tight', 'InitialMagnification', 100);
+            else
+                set(buffer, 'CData', mapImage);
+            end
         end
     end
-    
+
     methods(Static)
         function map = generateMap(width, height, freeRowWidth, occupiedRowWidth)
             map(1 : height, 1 : width) = 0;

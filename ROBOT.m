@@ -21,12 +21,12 @@ classdef Robot < Navigation
             robot.radius = radius;
             robot.posX = posX;
             robot.posY = posY;
-            
+
             opt.npoints = 100;
             opt.distthresh = 0.3 * max(size(robot.occgrid));
-            
+
             [opt, args] = tb_optparse(opt, varargin);
-            
+
             robot.npoints = opt.npoints;
             robot.distthresh = opt.distthresh;
         end
@@ -38,12 +38,14 @@ classdef Robot < Navigation
             s = char(s, sprintf('  dist thresh: %f', prm.distthresh));
             s = char(s, char(prm.graph) );
         end
-        
+
         function n = next(prm, p)
             n = []
         end
-        
+
         function plan(prm)
         end
+
+
     end
 end
