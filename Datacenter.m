@@ -37,7 +37,7 @@ classdef Datacenter
             datacenter.landmarks = Datacenter.generateLandmarks(datacenter.map);
             
             robotPosition = Datacenter.generateRobotPosition(datacenter.map, opt.robotRadius);
-            datacenter.robot = Robot(opt.robotRadius, robotPosition(2), robotPosition(1));
+            datacenter.robot = Robot(opt.robotRadius, datacenter.landmarks, robotPosition(2), robotPosition(1));
             datacenter.mapImage = datacenter.blitBackground()
         end
         
@@ -45,7 +45,7 @@ classdef Datacenter
             route = [];
             
             map = datacenter.map .* -1;
-            
+
             initX = floor(datacenter.robot.posX);
             initY = floor(datacenter.robot.posY);
             
@@ -236,30 +236,24 @@ classdef Datacenter
                 datacenter.moveRobot(nextX, nextY);
             end
         end
-        
+
         % TODO: colision behavior.
         function moveRobot(datacenter, destX, destY)
-            dx = destX - datacenter.robot.posX;
-            dy = destY - datacenter.robot.posY;
-            
-            d =  sqrt(dx ^ 2 + dy ^ 2);
-            
-            noSteps = floor(datacenter.mapUnitSize / 5 * d);
-            stepSize = d / noSteps;
-            
-            sx = (stepSize * dx) / d;
-            sy = (stepSize * dy) / d;
-            
+            stepSize = 2 / datacenter.mapUnitSize;
+
             buf = datacenter.plot(NaN);
-            for i = 1 : noSteps
-                if i == noSteps
-                    datacenter.robot.posX = destX;
-                    datacenter.robot.posY = destY;
-                else
-                    datacenter.robot.posX = datacenter.robot.posX + sx;
-                    datacenter.robot.posY = datacenter.robot.posY + sy;
+
+            while true
+                datacenter.robot.stepTowards([destX, destY], stepSize);
+
+                remainingDistance = sum(abs([destX, destY] - datacenter.robot.estimatedPos))
+                if remainingDistance < 0.1
+                    break;
                 end
-                
+
+                %datacenter.robot.posX = datacenter.robot.posX + sx;
+                %datacenter.robot.posY = datacenter.robot.posY + sy;
+
                 datacenter.plot(buf);
                 pause(0.001);
             end
@@ -311,10 +305,20 @@ classdef Datacenter
             robot = imresize(robot, [robotSize, robotSize]);
 
             % Draw robot.
-            rposx = max(floor((datacenter.robot.posX - datacenter.robot.radius) * datacenter.mapUnitSize), 1);
-            rposy = max(floor((datacenter.robot.posY - datacenter.robot.radius) * datacenter.mapUnitSize), 1);
+            posX = datacenter.robot.currentPos(1);
+            posY = datacenter.robot.currentPos(2);
+            rposx = max(floor((posX - datacenter.robot.radius) * datacenter.mapUnitSize), 1);
+            rposy = max(floor((posY - datacenter.robot.radius) * datacenter.mapUnitSize), 1);
 
             mapImage(rposx : (rposx + robotSize - 1), rposy : (rposy + robotSize - 1), :) = robot(:, :, :);
+
+            particleShape = vision.ShapeInserter('Shape', 'Circles', 'BorderColor', 'Custom', 'CustomBorderColor', uint8([0 255 255]));
+            particles = [];
+            for i = 1 : size(datacenter.robot.particles, 1)
+                particles = [particles; [fliplr(datacenter.robot.particles(i, :)) 0.5] .* datacenter.mapUnitSize];
+            end
+            mapImage = step(particleShape, mapImage, uint32(particles));
+
 
             if (~isa(buffer, 'matlab.graphics.primitive.Image'))
                 % Set axis.
