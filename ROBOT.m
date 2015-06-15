@@ -55,7 +55,7 @@ classdef Robot < Navigation
 
         function predict(robot, odo)
             part = robot.particles;
-            robot.particles = part + repmat(odo, [size(part, 1), 1]);
+            robot.particles = part + repmat(odo, [size(part, 1), 1]) + randn(size(part, 1), 2) * robot.deviation;
         end
 
         function observe(robot)
@@ -86,6 +86,9 @@ classdef Robot < Navigation
             z = zeros(2, 1);
             z(1) = sqrt(d(1)^2 + d(2)^2);
             z(2) = atan2(d(2), d(1));
+
+            % todo add noise for the angle
+            z(1) = z(1) + randn(1) * robot.deviation;
         end
 
         function s = char(prm)
