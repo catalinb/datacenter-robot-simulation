@@ -39,7 +39,7 @@ classdef Datacenter
             datacenter.eventmap = Datacenter.generateEvents(datacenter.map);
             
             robotPosition = Datacenter.generateRobotPosition(datacenter.map, opt.robotRadius);
-            datacenter.robot = Robot(opt.robotRadius, datacenter.landmarks, robotPosition(2), robotPosition(1));
+            datacenter.robot = Robot(opt.robotRadius, datacenter.landmarks, datacenter.landmarkViewRange, robotPosition(2), robotPosition(1));
             datacenter.mapImage = datacenter.blitBackground();
         end
         
