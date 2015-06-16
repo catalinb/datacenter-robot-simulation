@@ -12,6 +12,7 @@ classdef Datacenter
         landmarkViewRange;
         robot;
         robotRadius;
+        currentRoute;
     end
     
     methods
@@ -301,6 +302,7 @@ classdef Datacenter
                 solveI = -1;
                 solveJ = -1;
                 map = datacenter.map();
+                minroute = 1;
 
                 for i = 1 : heigth
                     for j = 1 : width
@@ -321,6 +323,7 @@ classdef Datacenter
                                         solveI = i;
                                         solveJ = j;
                                         events = true;
+                                        minroute = route;
                                     end
                                 catch causeException
                                 end
@@ -342,6 +345,7 @@ classdef Datacenter
                                         solveI = i;
                                         solveJ = j;
                                         events = true;
+                                        minroute = route;
                                     end
                                 catch causeException
                                 end
@@ -363,6 +367,7 @@ classdef Datacenter
                                         solveI = i;
                                         solveJ = j;
                                         events = true;
+                                        minroute = route;
                                     end
                                 catch causeException
                                 end
@@ -384,6 +389,7 @@ classdef Datacenter
                                         solveI = i;
                                         solveJ = j;
                                         events = true;
+                                        minroute = route;
                                     end
                                 catch causeException
                                 end
@@ -408,6 +414,7 @@ classdef Datacenter
                                             solveI = i;
                                             solveJ = j;
                                             events = true;
+                                            minroute = route;
                                         end
                                     catch causeException
                                     end
@@ -429,6 +436,7 @@ classdef Datacenter
                                             solveI = i;
                                             solveJ = j;
                                             events = true;
+                                            minroute = route;
                                         end
                                     catch causeException
                                     end
@@ -450,6 +458,7 @@ classdef Datacenter
                                             solveI = i;
                                             solveJ = j;
                                             events = true;
+                                            minroute = route;
                                         end
                                     catch causeException
                                     end
@@ -471,6 +480,7 @@ classdef Datacenter
                                             solveI = i;
                                             solveJ = j;
                                             events = true;
+                                            minroute = route;
                                         end
                                     catch causeException
                                     end
@@ -482,14 +492,13 @@ classdef Datacenter
                 end
                 
                 if (events)
-                    try
-                        datacenter.routeRobot(minI, minJ);
-                    catch causeException
-                    end
                     
+                    datacenter.currentRoute=minroute;
+                    datacenter.routeRobot(minI, minJ);
                     type =  datacenter.eventmap(solveI, solveJ);
                     datacenter.eventmap(solveI, solveJ) = 0;
                     datacenter.mapImage = datacenter.blitBackground();
+                    
                     pause(0.5*type);
                 end
                 
