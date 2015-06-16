@@ -7,12 +7,11 @@ classdef Datacenter
         mapRackWidth;
         mapRowWidth;
         mapUnitSize;
+        mapImage; % caching mapImage background (racks + tiles + landmark radius)
         landmarks;
         landmarkViewRange;
         robot;
         robotRadius;
-        % caching mapImage background (racks + tiles + landmark radius)
-        mapImage;
     end
     
     methods
@@ -51,13 +50,10 @@ classdef Datacenter
             rPosX = datacenter.robot.estimatedPos(1);
             rPosY = datacenter.robot.estimatedPos(2);
             
-            initX = floor(rPosX);
-            initY = floor(rPosY);
+            initX = max(floor(rPosX), 1);
+            initY = max(floor(rPosY), 1);
             
-            if (initX <=0 || initY <=0 || map(initX, initY) ~= 0)
-                ME = MException('MyComponent:noSuchVariable', 'abc');
-                throw(ME);
-            end
+            assert(map(initX, initY) == 0);
             
             if initX == destX && initY == destY
                 return;
@@ -257,11 +253,11 @@ classdef Datacenter
                 deltaPos = newPos - curPos;
                 
                 % Determine the possible area of collisions.
-                minX = max(floor(min(curPos(1), newPos(1))), 1);
-                minY = max(floor(min(curPos(2), newPos(2))), 1);
+                minX = max(floor(min(curPos(1), newPos(1))) - 1, 1);
+                minY = max(floor(min(curPos(2), newPos(2))) - 1, 1);
 
-                maxX = min(ceil(max(curPos(1), newPos(1))), datacenter.mapHeight);
-                maxY = min(ceil(max(curPos(2), newPos(2))), datacenter.mapWidth);
+                maxX = min(ceil(max(curPos(1), newPos(1))) + 1, datacenter.mapHeight);
+                maxY = min(ceil(max(curPos(2), newPos(2))) + 1, datacenter.mapWidth);
                 
                 for i = minX : maxX
                         for j = minY : maxY
@@ -543,7 +539,6 @@ classdef Datacenter
         end
 
         function buf = plot(datacenter, buffer)
-            % mapImage = datacenter.blitBackground();
             mapImage = datacenter.mapImage();
 
             robotSize = ceil(datacenter.mapUnitSize * datacenter.robot.radius);
@@ -560,11 +555,13 @@ classdef Datacenter
 
             particleShape = vision.ShapeInserter('Shape', 'Circles', 'BorderColor', 'Custom', 'CustomBorderColor', uint8([0 255 255]));
             particles = [];
+            
             for i = 1 : size(datacenter.robot.particles, 1)
                 particles = [particles; [fliplr(datacenter.robot.particles(i, :)) 0.5] .* datacenter.mapUnitSize];
             end
+            
             mapImage = step(particleShape, mapImage, uint32(particles));
-
+            
             if (~isa(buffer, 'matlab.graphics.primitive.Image'))
                 % Set axis.
                 set(gca, 'Ydir', 'normal');
@@ -663,11 +660,11 @@ classdef Datacenter
         function position = generateRobotPosition(map, robotRadius)
             [height, width] = size(map);
             
-            rposy = randi(width);
+            rposy = randi(height);
             rposx = ceil(robotRadius);
             
-            while map(rposx, rposy) == 1 && rposy < robotRadius && rposy + robotRadius > width
-                rposy = randi(width);
+            while map(rposx, rposy) == 1 && rposy < robotRadius && rposy + robotRadius > height
+                rposy = randi(height);
             end
             
             position = [rposx, rposy];
