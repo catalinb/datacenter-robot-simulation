@@ -53,7 +53,10 @@ classdef Datacenter
             initX = max(floor(rPosX), 1);
             initY = max(floor(rPosY), 1);
             
-            assert(map(initX, initY) == 0);
+            if (initX <=0 || initY <=0 || map(initX, initY) ~= 0)
+                 ME = MException('MyComponent:noSuchVariable', 'abc');
+                 throw(ME);
+            end
             
             if initX == destX && initY == destY
                 return;
@@ -103,7 +106,10 @@ classdef Datacenter
             prevY = queue(size(queue, 1), 2);
             
             % Destination has been reached.
-            assert(prevX == destX && prevY == destY);
+            if (prevX ~= destX || prevY ~= destY)
+                 ME = MException('MyComponent:noSuchVariable', 'abc');
+                 throw(ME);
+            end
             
             for i = size(queue, 1) : -1 : 1
                 posX = queue(i, 1);
@@ -283,6 +289,8 @@ classdef Datacenter
         end
         
         function solveEventsLocalOptimum(datacenter)
+            robotInitial = datacenter.robot.currentPos;
+            
             events = true;
             while(events)
                 events = false;
@@ -384,8 +392,6 @@ classdef Datacenter
                             
                         else
                             if (datacenter.eventmap(i,j) == 2)
-                                events = true;
-                                
                                 if (i+1 < heigth && map(i+1, j) == 0)
                                     try
                                         route = datacenter.generateRobotContinuousRoute(i + 1, j);
@@ -476,7 +482,11 @@ classdef Datacenter
                 end
                 
                 if (events)
-                    datacenter.routeRobot(minI, minJ);
+                    try
+                        datacenter.routeRobot(minI, minJ);
+                    catch causeException
+                    end
+                    
                     type =  datacenter.eventmap(solveI, solveJ);
                     datacenter.eventmap(solveI, solveJ) = 0;
                     datacenter.mapImage = datacenter.blitBackground();
@@ -484,6 +494,9 @@ classdef Datacenter
                 end
                 
             end
+            
+            datacenter.routeRobot(robotInitial(1), robotInitial(2));
+            
         end
 
         function mapImage = blitBackground(datacenter)
