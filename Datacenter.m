@@ -302,7 +302,7 @@ classdef Datacenter
                 solveI = -1;
                 solveJ = -1;
                 map = datacenter.map();
-                minroute = 1;
+                minroute = [];
 
                 for i = 1 : heigth
                     for j = 1 : width
@@ -310,7 +310,7 @@ classdef Datacenter
                             if (i+1 < heigth && map(i+1, j) == 0)
                                 try
                                     route = datacenter.generateRobotContinuousRoute(i + 1, j);
-
+                                    
                                     dist = 0;
                                     for k = 2:size(route, 1)
                                         dist = dist + Datacenter.euclideanDistance([route(k-1, 1) route(k-1, 2)], [route(k, 1) route(k, 2)]);
@@ -584,6 +584,11 @@ classdef Datacenter
             end
             
             mapImage = step(particleShape, mapImage, uint32(particles));
+                        
+            lineShape = vision.ShapeInserter('Shape', 'Lines', 'LineWidth', 5);
+            for i= 2:size(datacenter.currentRoute, 1)
+                mapImage = step(lineShape, mapImage, uint32([datacenter.currentRoute(i-1, 2)-0.5 datacenter.currentRoute(i-1, 1)-0.5 datacenter.currentRoute(i, 2)-0.5 datacenter.currentRoute(i, 1)-0.5] .* datacenter.mapUnitSize));
+            end
             
             if (~isa(buffer, 'matlab.graphics.primitive.Image'))
                 % Set axis.
@@ -598,6 +603,8 @@ classdef Datacenter
             else
                 set(buffer, 'CData', mapImage);
             end
+            
+            
         end
     end
 
