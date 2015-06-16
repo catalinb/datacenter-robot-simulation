@@ -1,6 +1,7 @@
 classdef Datacenter
     properties
         map;
+        eventmap;
         mapWidth;
         mapHeight;
         mapRackWidth;
@@ -35,6 +36,7 @@ classdef Datacenter
             
             datacenter.map = Datacenter.generateMap(opt.mapWidth, opt.mapHeight, opt.mapRowWidth, opt.mapRackWidth);
             datacenter.landmarks = Datacenter.generateLandmarks(datacenter.map);
+            datacenter.eventmap = Datacenter.generateEvents(datacenter.map);
             
             robotPosition = Datacenter.generateRobotPosition(datacenter.map, opt.robotRadius);
             datacenter.robot = Robot(opt.robotRadius, datacenter.landmarks, robotPosition(2), robotPosition(1));
@@ -52,7 +54,10 @@ classdef Datacenter
             initX = floor(rPosX);
             initY = floor(rPosY);
             
-            assert(map(initX, initY) == 0);
+            if (initX <=0 || initY <=0 || map(initX, initY) ~= 0)
+                ME = MException('MyComponent:noSuchVariable', 'abc');
+                throw(ME);
+            end
             
             if initX == destX && initY == destY
                 return;
@@ -280,6 +285,209 @@ classdef Datacenter
                 pause(0.001);
             end
         end
+        
+        function solveEventsLocalOptimum(datacenter)
+            events = true;
+            while(events)
+                events = false;
+                [heigth, width] = size(datacenter.map);
+                min = -1;
+                minI = -1;
+                minJ = -1;
+                solveI = -1;
+                solveJ = -1;
+                map = datacenter.map();
+
+                for i = 1 : heigth
+                    for j = 1 : width
+                        if (datacenter.eventmap(i,j) == 1)
+                            if (i+1 < heigth && map(i+1, j) == 0)
+                                try
+                                    route = datacenter.generateRobotContinuousRoute(i + 1, j);
+
+                                    dist = 0;
+                                    for k = 2:size(route, 1)
+                                        dist = dist + Datacenter.euclideanDistance([route(k-1, 1) route(k-1,2)], [route(k,1) route(k-1,1)]);
+                                    end
+
+                                    if (min == -1 || dist * 2 < min)
+                                        min = dist * 2;
+                                        minI = i + 1;
+                                        minJ = j;
+                                        solveI = i;
+                                        solveJ = j;
+                                        events = true;
+                                    end
+                                catch causeException
+                                end
+                            end
+                            
+                            if (i-1 > 0 && map(i-1, j) == 0)
+                                try
+                                    route = datacenter.generateRobotContinuousRoute(i - 1, j);
+
+                                    dist = 0;
+                                    for k = 2:size(route, 1)
+                                        dist = dist + Datacenter.euclideanDistance([route(k-1, 1) route(k-1,2)], [route(k,1) route(k-1,1)]);
+                                    end
+
+                                    if (min == -1 || dist * 2 < min)
+                                        min = dist * 2;
+                                        minI = i - 1;
+                                        minJ = j;
+                                        solveI = i;
+                                        solveJ = j;
+                                        events = true;
+                                    end
+                                catch causeException
+                                end
+                            end
+                            
+                            if (j+1 < width && map(i, j+1) == 0)
+                                try
+                                    route = datacenter.generateRobotContinuousRoute(i, j+1);
+
+                                    dist = 0;
+                                    for k = 2:size(route, 1)
+                                        dist = dist + Datacenter.euclideanDistance([route(k-1, 1) route(k-1,2)], [route(k,1) route(k-1,1)]);
+                                    end
+
+                                    if (min == -1 || dist * 2 < min)
+                                        min = dist * 2;
+                                        minI = i;
+                                        minJ = j + 1;
+                                        solveI = i;
+                                        solveJ = j;
+                                        events = true;
+                                    end
+                                catch causeException
+                                end
+                            end
+                            
+                            if (j-1 > 0 && map(i, j-1) == 0)
+                                try
+                                    route = datacenter.generateRobotContinuousRoute(i, j-1);
+
+                                    dist = 0;
+                                    for k = 2:size(route, 1)
+                                        dist = dist + Datacenter.euclideanDistance([route(k-1, 1) route(k-1,2)], [route(k,1) route(k-1,1)]);
+                                    end
+
+                                    if (min == -1 || dist * 2 < min)
+                                        min = dist * 2;
+                                        minI = i;
+                                        minJ = j-1;
+                                        solveI = i;
+                                        solveJ = j;
+                                        events = true;
+                                    end
+                                catch causeException
+                                end
+                            end
+                            
+                            
+                        else
+                            if (datacenter.eventmap(i,j) == 2)
+                                events = true;
+                                
+                                if (i+1 < heigth && map(i+1, j) == 0)
+                                    try
+                                        route = datacenter.generateRobotContinuousRoute(i + 1, j);
+
+                                        dist = 0;
+                                        for k = 2:size(route, 1)
+                                            dist = dist + Datacenter.euclideanDistance([route(k-1, 1) route(k-1,2)], [route(k,1) route(k-1,1)]);
+                                        end
+
+                                        if (min == -1 || dist< min)
+                                            min = dist;
+                                            minI = i + 1;
+                                            minJ = j;
+                                            solveI = i;
+                                            solveJ = j;
+                                            events = true;
+                                        end
+                                    catch causeException
+                                    end
+                                end
+
+                                if (i-1 > 0 && map(i-1, j) == 0)
+                                    try
+                                        route = datacenter.generateRobotContinuousRoute(i - 1, j);
+
+                                        dist = 0;
+                                        for k = 2:size(route, 1)
+                                            dist = dist + Datacenter.euclideanDistance([route(k-1, 1) route(k-1,2)], [route(k,1) route(k-1,1)]);
+                                        end
+
+                                        if (min == -1 || dist< min)
+                                            min = dist;
+                                            minI = i - 1;
+                                            minJ = j;
+                                            solveI = i;
+                                            solveJ = j;
+                                            events = true;
+                                        end
+                                    catch causeException
+                                    end
+                                end
+
+                                if (j+1 < width && map(i, j+1) == 0)
+                                    try
+                                        route = datacenter.generateRobotContinuousRoute(i, j+1);
+
+                                        dist = 0;
+                                        for k = 2:size(route, 1)
+                                            dist = dist + Datacenter.euclideanDistance([route(k-1, 1) route(k-1,2)], [route(k,1) route(k-1,1)]);
+                                        end
+
+                                        if (min == -1 || dist< min)
+                                            min = dist;
+                                            minI = i;
+                                            minJ = j + 1;
+                                            solveI = i;
+                                            solveJ = j;
+                                            events = true;
+                                        end
+                                    catch causeException
+                                    end
+                                end
+
+                                if (j-1 > 0 && map(i, j-1) == 0)
+                                    try
+                                        route = datacenter.generateRobotContinuousRoute(i, j-1);
+
+                                        dist = 0;
+                                        for k = 2:size(route, 1)
+                                            dist = dist + Datacenter.euclideanDistance([route(k-1, 1) route(k-1,2)], [route(k,1) route(k-1,1)]);
+                                        end
+
+                                        if (min == -1 || dist< min)
+                                            min = dist;
+                                            minI = i;
+                                            minJ = j-1;
+                                            solveI = i;
+                                            solveJ = j;
+                                            events = true;
+                                        end
+                                    catch causeException
+                                    end
+                                end
+                                
+                            end
+                        end
+                    end
+                end
+                
+                if (events)
+                    datacenter.routeRobot(minI, minJ);
+                    eventmap = datacenter.eventmap;
+                    eventmap(solveI, solveJ) = 0;
+                    datacenter.eventmap = eventmap;
+                end
+                
+            end
+        end
 
         function mapImage = blitBackground(datacenter)
              % Don't want the image size warning showing up.
@@ -294,15 +502,31 @@ classdef Datacenter
 
             rackSize = datacenter.mapUnitSize;
 
-            rack = imread('images/rack.jpg', 'jpg');
-            rack = imresize(rack, [rackSize, rackSize]);
-            rack = imrotate(rack, 180);
+            rack0 = imread('images/rack.jpg', 'jpg');
+            rack0 = imresize(rack0, [rackSize, rackSize]);
+            rack0 = imrotate(rack0, 180);
+            
+            rack1 = imread('images/rack_warning.jpg', 'jpg');
+            rack1 = imresize(rack1, [rackSize, rackSize]);
+            rack1 = imrotate(rack1, 180);
+            
+            rack2 = imread('images/rack_fault.jpg', 'jpg');
+            rack2 = imresize(rack2, [rackSize, rackSize]);
+            rack2 = imrotate(rack2, 180);
 
             % Draw racks.
             for i = 1 : datacenter.mapHeight
                 for j = 1 : datacenter.mapWidth
                     if(datacenter.map(i, j) == 1)
-                        mapImage(((i - 1) * datacenter.mapUnitSize + 1) : (i * datacenter.mapUnitSize), ((j - 1) * datacenter.mapUnitSize + 1) : (j * datacenter.mapUnitSize), :) = rack(:, :, :);
+                        if (datacenter.eventmap(i,j)==0)
+                            mapImage(((i - 1) * datacenter.mapUnitSize + 1) : (i * datacenter.mapUnitSize), ((j - 1) * datacenter.mapUnitSize + 1) : (j * datacenter.mapUnitSize), :) = rack0(:, :, :);
+                        else
+                            if (datacenter.eventmap(i,j)==1)
+                                mapImage(((i - 1) * datacenter.mapUnitSize + 1) : (i * datacenter.mapUnitSize), ((j - 1) * datacenter.mapUnitSize + 1) : (j * datacenter.mapUnitSize), :) = rack1(:, :, :);
+                            else
+                                mapImage(((i - 1) * datacenter.mapUnitSize + 1) : (i * datacenter.mapUnitSize), ((j - 1) * datacenter.mapUnitSize + 1) : (j * datacenter.mapUnitSize), :) = rack2(:, :, :);
+                            end
+                        end    
                     end
                 end
             end
@@ -405,6 +629,33 @@ classdef Datacenter
                     end
                     
                     landmarks = [landmarks; [i j] - 0.5];
+                end
+            end
+        end
+        
+        function eventmap = generateEvents(map)
+            events = [];
+            [heigth, width] = size(map);
+            eventmap(1 : heigth, 1 : width) = 0;
+            
+            for i=1: heigth
+                for j=1:width
+                    if (map(i, j)) ~= 1
+                        continue;
+                    end
+                    
+                    event = randi(100);
+                    
+                    if (event < 10)
+                        eventmap(i, j) = 2;
+                    else
+                        if (event < 25)
+                            eventmap(i, j)=1;
+                        else
+                            eventmap(i, j)=0;
+                        end
+                    end
+                    
                 end
             end
         end
