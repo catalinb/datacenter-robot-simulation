@@ -32,11 +32,11 @@ classdef Robot < Navigation
             
         end
 
-        function stepTowards(robot, newPos, maxStepSize)
+        function newPos = stepTowards(robot, newPos, maxStepSize)
             delta = newPos - robot.estimatedPos;
             maxDistance = min(abs(delta), [maxStepSize, maxStepSize]);
-            delta = maxDistance .* sign(delta)
-            robot.currentPos = robot.currentPos + delta;
+            delta = maxDistance .* sign(delta);
+            newPos = robot.currentPos + delta;
 
             % add noise
             odo = delta + randn(1,2) * robot.deviation;

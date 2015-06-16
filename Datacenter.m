@@ -38,7 +38,7 @@ classdef Datacenter
             
             robotPosition = Datacenter.generateRobotPosition(datacenter.map, opt.robotRadius);
             datacenter.robot = Robot(opt.robotRadius, datacenter.landmarks, robotPosition(2), robotPosition(1));
-            datacenter.mapImage = datacenter.blitBackground()
+            datacenter.mapImage = datacenter.blitBackground();
         end
         
         function route = generateRobotDiscreteRoute(datacenter, destX, destY)
@@ -46,8 +46,11 @@ classdef Datacenter
             
             map = datacenter.map .* -1;
 
-            initX = floor(datacenter.robot.posX);
-            initY = floor(datacenter.robot.posY);
+            rPosX = datacenter.robot.estimatedPos(1);
+            rPosY = datacenter.robot.estimatedPos(2);
+            
+            initX = floor(rPosX);
+            initY = floor(rPosY);
             
             assert(map(initX, initY) == 0);
             
@@ -244,15 +247,34 @@ classdef Datacenter
             buf = datacenter.plot(NaN);
 
             while true
-                datacenter.robot.stepTowards([destX, destY], stepSize);
+                curPos = datacenter.robot.currentPos;
+                newPos = datacenter.robot.stepTowards([destX, destY], stepSize);
+                deltaPos = newPos - curPos;
+                
+                % Determine the possible area of collisions.
+                minX = max(floor(min(curPos(1), newPos(1))), 1);
+                minY = max(floor(min(curPos(2), newPos(2))), 1);
+
+                maxX = min(ceil(max(curPos(1), newPos(1))), datacenter.mapHeight);
+                maxY = min(ceil(max(curPos(2), newPos(2))), datacenter.mapWidth);
+                
+                for i = minX : maxX
+                        for j = minY : maxY
+                            if datacenter.map(i, j) ~= 1
+                                continue;
+                            end
+                            
+                            
+                        end
+                end
+                
+                % Temporary.
+                datacenter.robot.currentPos = newPos;
 
                 remainingDistance = sum(abs([destX, destY] - datacenter.robot.estimatedPos))
                 if remainingDistance < 0.1
                     break;
                 end
-
-                %datacenter.robot.posX = datacenter.robot.posX + sx;
-                %datacenter.robot.posY = datacenter.robot.posY + sy;
 
                 datacenter.plot(buf);
                 pause(0.001);
@@ -318,7 +340,6 @@ classdef Datacenter
                 particles = [particles; [fliplr(datacenter.robot.particles(i, :)) 0.5] .* datacenter.mapUnitSize];
             end
             mapImage = step(particleShape, mapImage, uint32(particles));
-
 
             if (~isa(buffer, 'matlab.graphics.primitive.Image'))
                 % Set axis.
