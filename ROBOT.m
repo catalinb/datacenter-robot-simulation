@@ -12,17 +12,19 @@ classdef Robot < Navigation
         deviation;
         lcov; % covariance for the likelyhood
         landmarks;
+        viewRange;
     end
 
     methods
-        function robot = Robot(radius, landmarks, posX, posY, varargin)
+        function robot = Robot(radius, landmarks, viewRange, posX, posY, varargin)
             robot = robot@Navigation(varargin{:});
 
-            robot.deviation = 0.001;
-            robot.lcov = diag([0.001 0.001]);
+            robot.deviation = 0.002;
+            robot.lcov = diag([0.002 0.002]);
 
             robot.radius = radius;
             robot.landmarks = landmarks;
+            robot.viewRange = viewRange;
             robot.currentPos = [posX, posY];
             robot.estimatedPos = [posX, posY];
 
@@ -61,6 +63,7 @@ classdef Robot < Navigation
 
         function observe(robot)
             z = robot.sensorBearing(robot.currentPos)
+            min_distance = min(z(:,1))
             z = z(1,:);
             for p = 1:size(robot.particles, 1)
                 % expected measurement
@@ -68,8 +71,14 @@ classdef Robot < Navigation
                 z_pred = z_pred(1,:);
 
                 err = zeros(2, 1);
-                err(1) = z(1) - z_pred(1);
-                err(2) = angdiff(z(2), z_pred(2));
+                if min_distance < robot.viewRange
+                    view_distance = 1
+                    err(1) = z(1) - z_pred(1);
+                    err(2) = angdiff(z(2), z_pred(2));
+                else
+                    view_distance = 0
+                    err = [0.1; 0.1]
+                end
 
                 %weight = exp(-0.5 * err(1) * 0.1) + 0.05;
                 weight = exp(-0.5*err'*inv(robot.lcov)*err) + 0.005;
