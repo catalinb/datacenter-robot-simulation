@@ -571,7 +571,7 @@ classdef Datacenter
             particles = [];
             
             for i = 1 : size(datacenter.robot.particles, 1)
-                particles = [particles; [fliplr(datacenter.robot.particles(i, :)) 0.5] .* datacenter.mapUnitSize];
+                particles = [particles; [fliplr(datacenter.robot.particles(i, :))-0.5 0.5] .* datacenter.mapUnitSize];
             end
             
             mapImage = step(particleShape, mapImage, uint32(particles));
