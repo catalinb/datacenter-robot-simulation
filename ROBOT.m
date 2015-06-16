@@ -62,8 +62,8 @@ classdef Robot < Navigation
         end
 
         function observe(robot)
-            z = robot.sensorBearing(robot.currentPos)
-            min_distance = min(z(:,1))
+            z = robot.sensorBearing(robot.currentPos);
+            min_distance = min(z(:,1));
             z = z(1,:);
             for p = 1:size(robot.particles, 1)
                 % expected measurement
@@ -72,11 +72,9 @@ classdef Robot < Navigation
 
                 err = zeros(2, 1);
                 if min_distance < robot.viewRange
-                    view_distance = 1
                     err(1) = z(1) - z_pred(1);
                     err(2) = angdiff(z(2), z_pred(2));
                 else
-                    view_distance = 0
                     err = [0.1; 0.1]
                 end
 
