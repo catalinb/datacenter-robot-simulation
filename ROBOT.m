@@ -18,15 +18,15 @@ classdef Robot < Navigation
         function robot = Robot(radius, landmarks, posX, posY, varargin)
             robot = robot@Navigation(varargin{:});
 
-            robot.deviation = 0.1 ^ 2;
-            robot.lcov = diag([0.1 0.1]);
+            robot.deviation = 0.001;
+            robot.lcov = diag([0.001 0.001]);
 
             robot.radius = radius;
             robot.landmarks = landmarks;
             robot.currentPos = [posX, posY];
             robot.estimatedPos = [posX, posY];
 
-            robot.particles = randn(100, 2) + repmat(robot.estimatedPos, [100,1]);
+            robot.particles = randn(100, 2) * 0.5 + repmat(robot.estimatedPos, [100,1]);
 
             robot.particleScore = 1 / 100 * ones(100, 1);
             
@@ -51,23 +51,28 @@ classdef Robot < Navigation
             robot.select();
 
             robot.estimatedPos = mean(robot.particles);
+            position_error = robot.currentPos - robot.estimatedPos
         end
 
         function predict(robot, odo)
             part = robot.particles;
-            robot.particles = part + repmat(odo, [size(part, 1), 1]) + randn(size(part, 1), 2) * robot.deviation;
+            robot.particles = part + repmat(odo, [size(part, 1), 1]) + randn(size(part, 1), 2) * robot.deviation * 10;
         end
 
         function observe(robot)
-            z = robot.sensorBearing(robot.currentPos);
+            z = robot.sensorBearing(robot.currentPos)
+            z = z(1,:);
             for p = 1:robot.particles
                 % expected measurement
                 z_pred = robot.sensorBearing(robot.particles(p, :));
+                z_pred = z_pred(1,:);
+
                 err = zeros(2, 1);
                 err(1) = z(1) - z_pred(1);
                 err(2) = angdiff(z(2), z_pred(2));
 
-                weight = exp(-0.5*err'*inv(robot.lcov)*err) + 0.05;
+                %weight = exp(-0.5 * err(1) * 0.1) + 0.05;
+                weight = exp(-0.5*err'*inv(robot.lcov)*err) + 0.005;
                 robot.particleScore(p) = weight;
             end
         end
@@ -83,12 +88,13 @@ classdef Robot < Navigation
         function z = sensorBearing(robot, pos)
             pos = repmat(pos, [size(robot.landmarks, 1), 1]);
             d = robot.landmarks - pos;
-            z = zeros(2, 1);
-            z(1) = sqrt(d(1)^2 + d(2)^2);
-            z(2) = atan2(d(2), d(1));
+            z = zeros(size(robot.landmarks, 1), 2);
+            z(:,1) = colnorm([d(:,1), d(:, 2)]')';
+            %z(:,1) = sqrt(d(:,1)^2 + d(:,2)^2);
+            z(:,2) = atan2(d(:,2), d(:,1));
 
             % todo add noise for the angle
-            z(1) = z(1) + randn(1) * robot.deviation;
+            z(:,1) = z(:,1) + randn(size(robot.landmarks, 1), 1) * robot.deviation;
         end
 
         function s = char(prm)

@@ -279,7 +279,7 @@ classdef Datacenter
                 datacenter.robot.currentPos = newPos;
 
                 remainingDistance = sum(abs([destX, destY] - datacenter.robot.estimatedPos))
-                if remainingDistance < 0.1
+                if remainingDistance < 0.01
                     break;
                 end
 
