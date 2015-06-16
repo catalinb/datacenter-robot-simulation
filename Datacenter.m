@@ -504,6 +504,7 @@ classdef Datacenter
                 
             end
             
+            datacenter.currentRoute = datacenter.generateRobotContinuousRoute(robotInitial(1), robotInitial(2));
             datacenter.routeRobot(robotInitial(1), robotInitial(2));
             
         end
