@@ -26,9 +26,9 @@ classdef Robot < Navigation
             robot.currentPos = [posX, posY];
             robot.estimatedPos = [posX, posY];
 
-            robot.particles = randn(100, 2) * 0.5 + repmat(robot.estimatedPos, [100,1]);
+            robot.particles = randn(200, 2) * 0.5 + repmat(robot.estimatedPos, [200,1]);
 
-            robot.particleScore = 1 / 100 * ones(100, 1);
+            robot.particleScore = 1 / 200 * ones(200, 1);
             
         end
 
