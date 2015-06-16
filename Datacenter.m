@@ -303,7 +303,7 @@ classdef Datacenter
 
                                     dist = 0;
                                     for k = 2:size(route, 1)
-                                        dist = dist + Datacenter.euclideanDistance([route(k-1, 1) route(k-1,2)], [route(k,1) route(k-1,1)]);
+                                        dist = dist + Datacenter.euclideanDistance([route(k-1, 1) route(k-1, 2)], [route(k, 1) route(k, 2)]);
                                     end
 
                                     if (min == -1 || dist * 2 < min)
@@ -324,7 +324,7 @@ classdef Datacenter
 
                                     dist = 0;
                                     for k = 2:size(route, 1)
-                                        dist = dist + Datacenter.euclideanDistance([route(k-1, 1) route(k-1,2)], [route(k,1) route(k-1,1)]);
+                                        dist = dist + Datacenter.euclideanDistance([route(k-1, 1) route(k-1, 2)], [route(k, 1) route(k, 2)]);
                                     end
 
                                     if (min == -1 || dist * 2 < min)
@@ -345,7 +345,7 @@ classdef Datacenter
 
                                     dist = 0;
                                     for k = 2:size(route, 1)
-                                        dist = dist + Datacenter.euclideanDistance([route(k-1, 1) route(k-1,2)], [route(k,1) route(k-1,1)]);
+                                        dist = dist + Datacenter.euclideanDistance([route(k-1, 1) route(k-1, 2)], [route(k, 1) route(k, 2)]);
                                     end
 
                                     if (min == -1 || dist * 2 < min)
@@ -366,7 +366,7 @@ classdef Datacenter
 
                                     dist = 0;
                                     for k = 2:size(route, 1)
-                                        dist = dist + Datacenter.euclideanDistance([route(k-1, 1) route(k-1,2)], [route(k,1) route(k-1,1)]);
+                                        dist = dist + Datacenter.euclideanDistance([route(k-1, 1) route(k-1, 2)], [route(k, 1) route(k, 2)]);
                                     end
 
                                     if (min == -1 || dist * 2 < min)
@@ -392,7 +392,7 @@ classdef Datacenter
 
                                         dist = 0;
                                         for k = 2:size(route, 1)
-                                            dist = dist + Datacenter.euclideanDistance([route(k-1, 1) route(k-1,2)], [route(k,1) route(k-1,1)]);
+                                            dist = dist + Datacenter.euclideanDistance([route(k-1, 1) route(k-1, 2)], [route(k, 1) route(k, 2)]);
                                         end
 
                                         if (min == -1 || dist< min)
@@ -413,7 +413,7 @@ classdef Datacenter
 
                                         dist = 0;
                                         for k = 2:size(route, 1)
-                                            dist = dist + Datacenter.euclideanDistance([route(k-1, 1) route(k-1,2)], [route(k,1) route(k-1,1)]);
+                                            dist = dist + Datacenter.euclideanDistance([route(k-1, 1) route(k-1, 2)], [route(k, 1) route(k, 2)]);
                                         end
 
                                         if (min == -1 || dist< min)
@@ -434,7 +434,7 @@ classdef Datacenter
 
                                         dist = 0;
                                         for k = 2:size(route, 1)
-                                            dist = dist + Datacenter.euclideanDistance([route(k-1, 1) route(k-1,2)], [route(k,1) route(k-1,1)]);
+                                            dist = dist + Datacenter.euclideanDistance([route(k-1, 1) route(k-1, 2)], [route(k, 1) route(k, 2)]);
                                         end
 
                                         if (min == -1 || dist< min)
@@ -455,7 +455,7 @@ classdef Datacenter
 
                                         dist = 0;
                                         for k = 2:size(route, 1)
-                                            dist = dist + Datacenter.euclideanDistance([route(k-1, 1) route(k-1,2)], [route(k,1) route(k-1,1)]);
+                                            dist = dist + Datacenter.euclideanDistance([route(k-1, 1) route(k-1, 2)], [route(k, 1) route(k, 2)]);
                                         end
 
                                         if (min == -1 || dist< min)
@@ -477,8 +477,10 @@ classdef Datacenter
                 
                 if (events)
                     datacenter.routeRobot(minI, minJ);
+                    type =  datacenter.eventmap(solveI, solveJ);
                     datacenter.eventmap(solveI, solveJ) = 0;
                     datacenter.mapImage = datacenter.blitBackground();
+                    pause(0.5*type);
                 end
                 
             end
