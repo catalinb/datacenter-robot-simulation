@@ -477,9 +477,8 @@ classdef Datacenter
                 
                 if (events)
                     datacenter.routeRobot(minI, minJ);
-                    eventmap = datacenter.eventmap;
-                    eventmap(solveI, solveJ) = 0;
-                    datacenter.eventmap = eventmap;
+                    datacenter.eventmap(solveI, solveJ) = 0;
+                    datacenter.mapImage = datacenter.blitBackground();
                 end
                 
             end
