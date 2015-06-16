@@ -62,7 +62,7 @@ classdef Robot < Navigation
         function observe(robot)
             z = robot.sensorBearing(robot.currentPos)
             z = z(1,:);
-            for p = 1:robot.particles
+            for p = 1:size(robot.particles, 1)
                 % expected measurement
                 z_pred = robot.sensorBearing(robot.particles(p, :));
                 z_pred = z_pred(1,:);
